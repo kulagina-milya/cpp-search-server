@@ -393,11 +393,10 @@ void TestSortDocumentLessRelevance() {
 		const auto found_docs = server.FindTopDocuments("white cat city ears"s);
 		ASSERT_EQUAL(found_docs.size(), 3);
 		const Document& doc0 = found_docs[0];
-		ASSERT_EQUAL(doc0.id, doc_id);
 		const Document& doc1 = found_docs[1];
-		ASSERT_EQUAL(doc1.id, second_doc_id);
+		ASSERT(doc0.relevance > doc1.relevance);
 		const Document& doc2 = found_docs[2];
-		ASSERT_EQUAL(doc2.id, third_doc_id);
+		ASSERT(doc1.relevance > doc2.relevance);
 	}
 };
 
@@ -454,17 +453,41 @@ void TestSearchDocumentAndStatus() {
 	const int doc_id = 42;
 	const string content = "white cat in the city"s;
 	const vector<int> ratings = { 1, 2, 3 };
-	const int another_doc_id = 43;
-	const string another_content = "black cat with big ears"s;
-	const vector<int> another_ratings = { 5, 12, 0 };
+	const int second_doc_id = 43;
+	const string second_content = "black cat with big ears"s;
+	const vector<int> second_ratings = { 5, 12, 0 };
+	const int third_doc_id = 54;
+	const string third_content = "beautiful cat in brown box"s;
+	const vector<int> third_ratings = { 8, 8, 8, 1 };
+	const int four_doc_id = 45;
+	const string four_content = "cat lost my mind"s;
+	const vector<int> four_ratings = { 0, 2, 3, 0 };
 	{
 		SearchServer server;
 		server.AddDocument(doc_id, content, DocumentStatus::ACTUAL, ratings);
-		server.AddDocument(another_doc_id, another_content, DocumentStatus::BANNED, another_ratings);
-		const auto found_docs = server.FindTopDocuments("cat"s, DocumentStatus::BANNED);
+		server.AddDocument(second_doc_id, second_content, DocumentStatus::BANNED, second_ratings);
+		server.AddDocument(third_doc_id, third_content, DocumentStatus::IRRELEVANT, third_ratings);
+		server.AddDocument(four_doc_id, four_content, DocumentStatus::REMOVED, four_ratings);
+		auto found_docs = server.FindTopDocuments("cat"s, DocumentStatus::BANNED);
 		ASSERT_EQUAL(found_docs.size(), 1);
-		const Document& doc0 = found_docs[0];
-		ASSERT_EQUAL(doc0.id, another_doc_id);
+		Document& doc0 = found_docs[0];
+		ASSERT_EQUAL(doc0.id, second_doc_id);
+
+		found_docs = server.FindTopDocuments("cat"s);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		doc0 = found_docs[0];
+		ASSERT_EQUAL(doc0.id, doc_id);
+
+		found_docs = server.FindTopDocuments("cat"s, DocumentStatus::IRRELEVANT);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		doc0 = found_docs[0];
+		ASSERT_EQUAL(doc0.id, third_doc_id);
+
+		found_docs = server.FindTopDocuments("cat"s, DocumentStatus::REMOVED);
+		ASSERT_EQUAL(found_docs.size(), 1);
+		doc0 = found_docs[0];
+		ASSERT_EQUAL(doc0.id, four_doc_id);
+
 	}
 }
 
