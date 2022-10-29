@@ -84,12 +84,11 @@ class SearchServer {
 public:
 	template <typename StringContainer>
 	explicit SearchServer(const StringContainer& stop_words) {
-		for (const auto& word : MakeUniqueNonEmptyStrings(stop_words)) {
-			if (!IsValidWord(word)) {
-				throw invalid_argument("invalid stop word");
-			}
-			stop_words_.insert(word);
+		const set<string> temp = MakeUniqueNonEmptyStrings(stop_words);
+		if (any_of(temp.begin(), temp.end(), [](const string& word) { return !IsValidWord(word); })) {
+			throw invalid_argument("invalid stop word");
 		}
+		stop_words_ = temp;
 	}
 
 	explicit SearchServer(const string& stop_words_text)
@@ -177,12 +176,12 @@ public:
 private:
 	struct DocumentData {
 		int rating = 0;
-		DocumentStatus status;
+		DocumentStatus status = DocumentStatus::ACTUAL;
 	};
-	const set<string> stop_words_;
-	map<string, map<int, double>> word_to_document_freqs_;
-	map<int, DocumentData> documents_;
-	vector<int> documents_ids_;
+	set<string> stop_words_ = {};
+	map<string, map<int, double>> word_to_document_freqs_ = {};
+	map<int, DocumentData> documents_ = {};
+	vector<int> documents_ids_ = {};
 
 	static bool IsValidWord(const string& word) {
 		// A valid word must not contain special characters
@@ -213,9 +212,6 @@ private:
 			return 0;
 		}
 		int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
-		for (const int rating : ratings) {
-			rating_sum += rating;
-		}
 		return rating_sum / static_cast<int>(ratings.size());
 	}
 
@@ -307,25 +303,26 @@ private:
 
 // ==================== дл€ примера =========================
 //закоментировала эту часть, так как сейчас выбрасываютс€ исключени€
-/*
-void PrintDocument(const Document& document) {
-	cout << "{ "s
-		<< "document_id = "s << document.id << ", "s
-		<< "relevance = "s << document.relevance << ", "s
-		<< "rating = "s << document.rating << " }"s << endl;
-}
-int main() {
-	setlocale(LC_ALL, "Russian");
-	SearchServer search_server("и в на"s);
-	// явно игнорируем результат метода AddDocument, чтобы избежать предупреждени€
-	// о неиспользуемом результате его вызова
-	search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
-	search_server.AddDocument(1, "пушистый пЄс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 });
-	search_server.AddDocument(-1, "пушистый пЄс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 });
-	search_server.AddDocument(3, "большой пЄс скво\x12рец"s, DocumentStatus::ACTUAL, { 1, 3, 2 });
-	const auto documents = search_server.FindTopDocuments("--пушистый"s);
-	for (const Document& document : documents) {
-			PrintDocument(document);
+
+/*void PrintDocument(const Document& document) {
+    cout << "{ "s
+        << "document_id = "s << document.id << ", "s
+        << "relevance = "s << document.relevance << ", "s
+        << "rating = "s << document.rating << " }"s << endl;
 	}
 
+int main() {
+    setlocale(LC_ALL, "Russian");
+    SearchServer search_server("скво\x12рец в на"s);
+    // явно игнорируем результат метода AddDocument, чтобы избежать предупреждени€
+    // о неиспользуемом результате его вызова
+    search_server.AddDocument(1, "пушистый кот пушистый хвост"s, DocumentStatus::ACTUAL, { 7, 2, 7 });
+    search_server.AddDocument(1, "пушистый пЄс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 });
+    search_server.AddDocument(-1, "пушистый пЄс и модный ошейник"s, DocumentStatus::ACTUAL, { 1, 2 });
+    search_server.AddDocument(3, "большой пЄс скво\x12рец"s, DocumentStatus::ACTUAL, { 1, 3, 2 });
+    const auto documents = search_server.FindTopDocuments("пушистый"s);
+    for (const Document& document : documents) {
+            PrintDocument(document);
+    }
+    
 }*/
