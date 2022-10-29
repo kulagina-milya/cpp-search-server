@@ -66,12 +66,6 @@ template <typename StringContainer>
 set<string> MakeUniqueNonEmptyStrings(const StringContainer& strings) {
 	set<string> non_empty_strings;
 	for (const string& str : strings) {
-		if (!none_of(str.begin(), str.end(), [](char c) {
-			return c >= '\0' && c < ' ';
-		})) {
-			throw invalid_argument("invalid stop word");
-		}
-
 		if (!str.empty()) {
 			non_empty_strings.insert(str);
 		}
@@ -89,14 +83,17 @@ enum class DocumentStatus {
 class SearchServer {
 public:
 	template <typename StringContainer>
-	explicit SearchServer(const StringContainer& stop_words)
-		: stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
+	explicit SearchServer(const StringContainer& stop_words) {
+		for (const auto& word : MakeUniqueNonEmptyStrings(stop_words)) {
+			if (!IsValidWord(word)) {
+				throw invalid_argument("invalid stop word");
+			}
+			stop_words_.insert(word);
+		}
 	}
 
 	explicit SearchServer(const string& stop_words_text)
-		: SearchServer(
-			SplitIntoWords(stop_words_text))  // Invoke delegating constructor from string container
-	{
+		: SearchServer(SplitIntoWords(stop_words_text)) { // Invoke delegating constructor from string container
 	}
 
 	void AddDocument(int document_id, const string& document, DocumentStatus status, const vector<int>& ratings) {
@@ -126,9 +123,7 @@ public:
 			if (abs(lhs.relevance - rhs.relevance) < EPSILON) {
 				return lhs.rating > rhs.rating;
 			}
-			else {
-				return lhs.relevance > rhs.relevance;
-			}
+			return lhs.relevance > rhs.relevance;
 		});
 		if (matched_documents.size() > MAX_RESULT_DOCUMENT_COUNT) {
 			matched_documents.resize(MAX_RESULT_DOCUMENT_COUNT);
@@ -176,15 +171,12 @@ public:
 	}
 
 	int GetDocumentId(int index) const {
-		if (index < 0 || index >= GetDocumentCount()) {
-			throw out_of_range("index is not in range");
-		}
-		return documents_ids_[index];
+		return documents_ids_.at(index);
 	}
 
 private:
 	struct DocumentData {
-		int rating;
+		int rating = 0;
 		DocumentStatus status;
 	};
 	const set<string> stop_words_;
@@ -221,6 +213,9 @@ private:
 			return 0;
 		}
 		int rating_sum = accumulate(ratings.begin(), ratings.end(), 0);
+		for (const int rating : ratings) {
+			rating_sum += rating;
+		}
 		return rating_sum / static_cast<int>(ratings.size());
 	}
 
