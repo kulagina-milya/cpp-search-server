@@ -4,8 +4,6 @@
 #include <iostream>
 #include <string>
 
-using namespace std;
-
 #define PROFILE_CONCAT_INTERNAL(X, Y) X ## Y
 #define PROFILE_CONCAT(X, Y) PROFILE_CONCAT_INTERNAL(X, Y)
 #define UNIQUE_VAR_NAME_PROFILE PROFILE_CONCAT(profileGuard, __LINE__)
@@ -18,7 +16,7 @@ public:
     // с помощью using для удобства
     using Clock = std::chrono::steady_clock;
 
-    LogDuration(std::string name, ostream& stream = std::cerr) :
+    LogDuration(std::string name, std::ostream& stream = std::cerr) :
         name_(name),
         stream_(stream) {
     }
@@ -35,5 +33,5 @@ public:
 private:
     const Clock::time_point start_time_ = Clock::now();
     std::string name_;
-    ostream& stream_;
+    std::ostream& stream_;
 };

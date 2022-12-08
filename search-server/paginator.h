@@ -62,7 +62,7 @@ public:
         return pages_.size();
     }
 private:
-    vector<IteratorRange<Iterator>> pages_;
+    std::vector<IteratorRange<Iterator>> pages_;
 };
 
 template <typename Container>

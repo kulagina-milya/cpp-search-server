@@ -12,8 +12,6 @@
 #include "string_processing.h"
 #include "log_duration.h"
 
-using namespace std;
-
 const int MAX_RESULT_DOCUMENT_COUNT = 5;
 const double EPSILON = 1e-6;
 
@@ -41,22 +39,18 @@ public:
     int GetDocumentCount() const;
 
     auto begin() const {
-        auto iter = document_ids_.begin();
-        return iter;
+        return document_ids_.begin();
     }
 
     auto end() const {
-        auto iter = document_ids_.end();
-        return iter;
+        return document_ids_.end();
     }
 
     void RemoveDocument(int document_id);
 
     std::tuple<std::vector<std::string>, DocumentStatus> MatchDocument(const std::string& raw_query, int document_id) const;
 
-    const map<string, double>& GetWordFrequencies(int document_id) const;
-
-    bool fillWordsIds(const set<string> &words, int id);
+    const std::map<std::string, double>& GetWordFrequencies(int document_id) const;
 
 private:
     struct DocumentData {
@@ -66,9 +60,8 @@ private:
     const std::set<std::string> stop_words_;
     std::map<std::string, std::map<int, double>> word_to_document_freqs_;
     std::map<int, DocumentData> documents_;
-    std::vector<int> document_ids_;
+    std::set<int> document_ids_;
     std::map<int, std::map<std::string, double>> document_to_word_freqs_;
-    std::map<std::set<string>, int> words_ids_;
 
     bool IsStopWord(const std::string& word) const;
 
@@ -103,9 +96,9 @@ private:
 template <typename StringContainer>
 SearchServer::SearchServer(const StringContainer& stop_words) :
     stop_words_(MakeUniqueNonEmptyStrings(stop_words)) {
-    using namespace std;
+    using namespace std::literals;
     if (!all_of(stop_words_.begin(), stop_words_.end(), IsValidWord)) {
-        throw invalid_argument("Some of stop words are invalid"s);
+        throw std::invalid_argument("Some of stop words are invalid"s);
     }
 }
 
