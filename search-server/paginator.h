@@ -36,7 +36,6 @@ std::ostream& operator<<(std::ostream& out, IteratorRange<Iterator> pages) {
 template <typename Iterator>
 class Paginator {
 public:
-    // тело класса
     Paginator(Iterator begin, Iterator end, size_t page_size) {
         while (begin < end) {
             auto dist = distance(begin, end);

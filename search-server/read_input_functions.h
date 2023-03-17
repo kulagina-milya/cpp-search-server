@@ -6,4 +6,3 @@
 std::string ReadLine();
 
 int ReadLineWithNumber();
-
