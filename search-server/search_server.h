@@ -124,6 +124,9 @@ private:
     template <typename DocumentPredicate>
     std::vector<Document> FindAllDocuments(const std::execution::parallel_policy& policy, const Query& query, 
         DocumentPredicate document_predicate) const;
+
+    template <typename ExecutionPolicy>
+    void SortQuery(const ExecutionPolicy& policy, Query& query) const;
 };
 
 template <typename StringContainer>
@@ -135,15 +138,20 @@ SearchServer::SearchServer(const StringContainer& stop_words) :
     }
 }
 
+template <typename ExecutionPolicy>
+void SearchServer::SortQuery(const ExecutionPolicy& policy, Query& query) const {
+    std::sort(policy, query.minus_words.begin(), query.minus_words.end());
+    const auto minus_word = std::unique(policy, query.minus_words.begin(), query.minus_words.end());
+    query.minus_words.erase(minus_word, query.minus_words.end());
+    std::sort(policy, query.plus_words.begin(), query.plus_words.end());
+    const auto plus_word = std::unique(policy, query.plus_words.begin(), query.plus_words.end());
+    query.plus_words.erase(plus_word, query.plus_words.end());
+}
+
 template <typename DocumentPredicate>
 std::vector<Document> SearchServer::FindTopDocuments(std::string_view raw_query, DocumentPredicate document_predicate) const {
     auto query = ParseQuery(raw_query);
-    std::sort(query.minus_words.begin(), query.minus_words.end());
-    const auto minus_word = std::unique(query.minus_words.begin(), query.minus_words.end());
-    query.minus_words.erase(minus_word, query.minus_words.end());
-    std::sort(query.plus_words.begin(), query.plus_words.end());
-    const auto plus_word = std::unique(query.plus_words.begin(), query.plus_words.end());
-    query.plus_words.erase(plus_word, query.plus_words.end());
+    SortQuery(std::execution::seq, query);
     auto matched_documents = FindAllDocuments(query, document_predicate);
     sort(matched_documents.begin(), matched_documents.end(),
         [](const Document& lhs, const Document& rhs) {
@@ -171,12 +179,7 @@ template <typename DocumentPredicate>
 std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy& policy, 
     std::string_view raw_query, DocumentPredicate document_predicate) const {
     auto query = ParseQuery(raw_query);
-    std::sort(policy, query.minus_words.begin(), query.minus_words.end());
-    const auto minus_word = std::unique(query.minus_words.begin(), query.minus_words.end());
-    query.minus_words.erase(minus_word, query.minus_words.end());
-    std::sort(policy, query.plus_words.begin(), query.plus_words.end());
-    const auto plus_word = std::unique(query.plus_words.begin(), query.plus_words.end());
-    query.plus_words.erase(plus_word, query.plus_words.end());
+    SortQuery(std::execution::par, query);
     auto matched_documents = FindAllDocuments(policy, query, document_predicate);
     sort(policy,
         matched_documents.begin(), matched_documents.end(),
